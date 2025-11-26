@@ -87,7 +87,6 @@ Institutional canteens face challenges such as:
 - Zustand for state management  
 
 ### Backend
-- Node.js / Express (API gateway)  
 - FastAPI (ML backend)  
 - Gemini API for suggestion generation  
 - Prophet, SentenceTransformer, PuLP  
