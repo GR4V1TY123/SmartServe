@@ -13,9 +13,16 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MiniCalendar from "../components/miniCalendar";
+import { supabase } from "../supabase/supabaseClient";
 
 export default function Overview() {
     const [time, setTime] = useState(new Date());
+    const [stats, setStats] = useState({
+        predictedDemand: 0,
+        totalOrders: 0,
+        completedOrders: 0,
+        pendingOrders: 0,
+    });
 
     // Update time every second
     useEffect(() => {
@@ -24,14 +31,50 @@ export default function Overview() {
     }, []);
     const navigate = useNavigate();
 
-    const stats = {
-        predictedDemand: 120,
-        totalOrders: 95,
-        completedOrders: 78,
-        pendingOrders: 17,
-        surplus: 10, // extra meals left
-        shortage: 5, // missed due to demand spike
-    };
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                // --- 1️⃣ Fetch orders from Supabase ---
+                const { data: orders, error } = await supabase.from("Orders").select("*");
+                if (error) throw error;
+
+                const total = orders.length;
+                const completed = orders.filter(o => o.status === "completed").length;
+                const pending = orders.filter(o => o.status === "pending").length;
+
+                // --- 2️⃣ Fetch forecast data from FastAPI ---
+                const response = await fetch("http://127.0.0.1:8000/predict");
+                const data = await response.json();
+
+                // --- 3️⃣ Get current date in YYYY-MM-DD format ---
+                const today = "2025-11-01";
+                
+
+                // --- 4️⃣ Filter only today's forecast entries ---
+                const todayForecasts = data.forecast.filter(f => f.date === today);
+
+                // --- 5️⃣ Sum recommended_servings for today ---
+                const totalPredicted = todayForecasts.reduce(
+                    (sum, f) => sum + (f.recommended_servings || 0),
+                    0
+                );
+
+                // --- 6️⃣ Update dashboard state ---
+                setStats({
+                    predictedDemand: totalPredicted,
+                    totalOrders: total,
+                    completedOrders: completed,
+                    pendingOrders: pending,
+                });
+            } catch (err) {
+                console.error("Error fetching stats:", err);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+
 
     return (
         <div className="p-8 bg-blue-50 min-h-screen">
@@ -67,7 +110,7 @@ export default function Overview() {
                     </div>
 
                     {/* Quick Stats */}
-                    <div className="grid grid-cols-3 gap-3 mt-2 text-center">
+                    <div className="grid grid-cols-2 gap-3 mt-2 text-center">
                         <div className="bg-blue-50 rounded-lg p-2">
                             <p className="text-m text-gray-700 font-bold">Predicted Demand</p>
                             <p className="font-semibold text-blue-700">{stats.predictedDemand}</p>
@@ -88,62 +131,15 @@ export default function Overview() {
                             <p className="font-semibold text-yellow-700">{stats.pendingOrders}</p>
                         </div>
 
-                        <div className="bg-purple-50 rounded-lg p-2 font-bold">
-                            <p className="text-m text-gray-700">Surplus</p>
-                            <p className="font-semibold text-purple-700">{stats.surplus}</p>
-                        </div>
-
-                        <div className="bg-red-50 rounded-lg p-2 font-bold">
-                            <p className="text-m text-gray-700">Shortage</p>
-                            <p className="font-semibold text-red-700">{stats.shortage}</p>
-                        </div>
                         <div className="col-span-full rounded-lg p-2 font-bold">
                             <p className="text-m text-gray-700">Normal Day</p>
                         </div>
                     </div>
-                    
+
                 </div>
                 <div>
                     <MiniCalendar />
                 </div>
-            </div>
-
-
-
-
-            {/* Key Stats Section */}
-            <div className="grid md:grid-cols-4 gap-6 mb-10">
-                <Card className="border-blue-100 shadow-sm bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-blue-700 text-lg">Orders Today</CardTitle>
-                        <CardDescription>Number of total placed orders</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-4xl font-semibold text-blue-800">128</CardContent>
-                </Card>
-
-                <Card className="border-blue-100 shadow-sm bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-blue-700 text-lg">Active Menu Items</CardTitle>
-                        <CardDescription>Currently available vegetarian items</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-4xl font-semibold text-blue-800">10</CardContent>
-                </Card>
-
-                <Card className="border-blue-100 shadow-sm bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-blue-700 text-lg">Surplus / Leftovers</CardTitle>
-                        <CardDescription>Remaining cooked food for today</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-4xl font-semibold text-blue-800">5 kg</CardContent>
-                </Card>
-
-                <Card className="border-blue-100 shadow-sm bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-blue-700 text-lg">Profit / Loss</CardTitle>
-                        <CardDescription>Calculated after today’s sales</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-4xl font-semibold text-green-700">₹2,150</CardContent>
-                </Card>
             </div>
 
             {/* Quick Navigation Section */}

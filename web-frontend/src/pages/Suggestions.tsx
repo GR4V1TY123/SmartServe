@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Leaf, Recycle, Utensils, Lightbulb, AlertTriangle, TrendingUp, Clock } from "lucide-react";
+import { Leaf, Recycle, Utensils, Lightbulb, AlertTriangle, TrendingUp, Clock, BarChart3 } from "lucide-react";
 import { Pie } from "react-chartjs-2";
 import {
     Chart as ChartJS,
@@ -8,16 +8,24 @@ import {
     Tooltip,
     Legend,
 } from "chart.js";
+import { supabase } from "../supabase/supabaseClient";
+import { GoogleGenAI } from "@google/genai";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function Suggestions() {
+
+
     const [duration, setDuration] = useState("day");
     const [suggestions, setSuggestions] = useState({
+        keyActions: [],
         wasteReduction: [],
         nextDayMenu: [],
-        operations: [],
+        operationalTips: [],
     });
+
+    const [forecast, setForecast] = useState<any[]>([]); // predicted demand data
+    const [loadingForecast, setLoadingForecast] = useState(false);
 
     const [chartData, setChartData] = useState({
         labels: ["Rice & Grains", "Vegetables", "Snacks", "Beverages"],
@@ -33,150 +41,198 @@ export default function Suggestions() {
 
     const priorities = {
         day: [
-            {
-                icon: <Recycle className="text-green-600 w-5 h-5" />,
-                text: "Reuse leftover dal and rice for breakfast items tomorrow.",
-                color: "text-green-700",
-            },
-            {
-                icon: <Clock className="text-blue-600 w-5 h-5" />,
-                text: "Prepare extra dosa batter before the 12–2 PM lunch rush.",
-                color: "text-blue-700",
-            },
-            {
-                icon: <AlertTriangle className="text-yellow-600 w-5 h-5" />,
-                text: "Monitor chutney wastage — current rate 1.2 kg/day.",
-                color: "text-yellow-700",
-            },
+            { icon: <Recycle className="text-green-600 w-5 h-5" />, text: "Reuse leftover dal and rice for breakfast items tomorrow.", color: "text-green-700" },
+            { icon: <Clock className="text-blue-600 w-5 h-5" />, text: "Prepare extra dosa batter before the 12–2 PM lunch rush.", color: "text-blue-700" },
+            { icon: <AlertTriangle className="text-yellow-600 w-5 h-5" />, text: "Monitor chutney wastage — current rate 1.2 kg/day.", color: "text-yellow-700" },
         ],
         week: [
-            {
-                icon: <TrendingUp className="text-blue-600 w-5 h-5" />,
-                text: "Retain top dishes: Masala Dosa, Paneer Roll, Veg Sandwich.",
-                color: "text-blue-700",
-            },
-            {
-                icon: <Recycle className="text-green-600 w-5 h-5" />,
-                text: "Repurpose extra vegetables for soups and curries.",
-                color: "text-green-700",
-            },
-            {
-                icon: <AlertTriangle className="text-orange-600 w-5 h-5" />,
-                text: "Reduce paratha dough prep by 20% based on weekly data.",
-                color: "text-orange-700",
-            },
+            { icon: <TrendingUp className="text-blue-600 w-5 h-5" />, text: "Retain top dishes: Masala Dosa, Paneer Roll, Veg Sandwich.", color: "text-blue-700" },
+            { icon: <Recycle className="text-green-600 w-5 h-5" />, text: "Repurpose extra vegetables for soups and curries.", color: "text-green-700" },
+            { icon: <AlertTriangle className="text-orange-600 w-5 h-5" />, text: "Reduce paratha dough prep by 20% based on weekly data.", color: "text-orange-700" },
         ],
         month: [
-            {
-                icon: <TrendingUp className="text-green-700 w-5 h-5" />,
-                text: "Optimize vendor orders to cut 15% monthly food waste.",
-                color: "text-green-800",
-            },
-            {
-                icon: <Recycle className="text-blue-600 w-5 h-5" />,
-                text: "Introduce ‘Zero Waste Friday’ combo using surplus items.",
-                color: "text-blue-700",
-            },
-            {
-                icon: <AlertTriangle className="text-red-600 w-5 h-5" />,
-                text: "Review 3 low-demand items for potential replacement.",
-                color: "text-red-700",
-            },
+            { icon: <TrendingUp className="text-green-700 w-5 h-5" />, text: "Optimize vendor orders to cut 15% monthly food waste.", color: "text-green-800" },
+            { icon: <Recycle className="text-blue-600 w-5 h-5" />, text: "Introduce ‘Zero Waste Friday’ combo using surplus items.", color: "text-blue-700" },
+            { icon: <AlertTriangle className="text-red-600 w-5 h-5" />, text: "Review 3 low-demand items for potential replacement.", color: "text-red-700" },
         ],
     };
 
+    const [selectedDate, setSelectedDate] = useState("");
+    const [uniqueDates, setUniqueDates] = useState([]);
+    const [filteredForecast, setFilteredForecast] = useState([]);
+    const [menu, setMenu] = useState([]);
+    const [ingredients, setIngredients] = useState([]);
+    const [orders, setOrders] = useState([]);
+
     useEffect(() => {
-        // Simulate fetching data (replace with API later)
+        const fetchData = async () => {
+            const { data: menuData } = await supabase.from("Menu").select("*");
+            const { data: ingredientData } = await supabase.from("Ingredients").select("*");
+            const { data: orderData } = await supabase.from("Orders").select("*");
 
-
-        const dummyData = {
-            day: {
-                wasteReduction: [
-                    "Use leftover dal for khichdi or dal paratha during breakfast hours.",
-                    "Track idli, dosa, and poha demand daily to avoid extra batter preparation.",
-                    "Encourage reusable containers for takeaways to minimize disposable waste.",
-                    "Use excess chopped vegetables to make mixed-veg curry for evening meals.",
-                    "Sell leftover samosas or sandwiches at discounted rates near closing time.",
-                ],
-                nextDayMenu: [
-                    "Keep Paneer Roll, Veg Sandwich, and Masala Dosa — they had highest sales today.",
-                    "Reduce preparation of Poha and Lemon Rice; both had low demand today.",
-                    "Add a light breakfast option like Upma or Veg Cutlet tomorrow for variety.",
-                    "Include fresh juice of the day (e.g., Watermelon or Orange) based on fruit availability.",
-                ],
-                operations: [
-                    "Peak hours: 12–2 PM. Ensure 2 extra staff during rush for billing and serving.",
-                    "Reuse leftover chutneys and curries as base for soups or gravies the next day.",
-                    "Ensure rice is soaked in correct proportion to avoid morning wastage.",
-                    "Maintain temperature logs of food storage to ensure freshness for reuse.",
-                ],
-                chart: [2.3, 1.8, 1.1, 0.6], // Rice & grains, Vegetables, Snacks, Beverages
-            },
-
-            week: {
-                wasteReduction: [
-                    "Combine surplus items mid-week into new combo meals like ‘Mini Thali’ or ‘Canteen Special Plate’.",
-                    "Reduce paratha dough preparation by 20% based on last week’s demand patterns.",
-                    "Track perishable inventory like curd and paneer daily to avoid spoilage.",
-                    "Encourage pre-ordering system during lunch breaks using digital tokens.",
-                    "Offer discounts on items nearing expiry such as bread-based dishes.",
-                ],
-                nextDayMenu: [
-                    "Masala Dosa, Veg Roll, and Paneer Butter Masala were top sellers this week — retain them.",
-                    "Avoid repetitive items like Lemon Rice and Plain Idli which saw low uptake.",
-                    "Add seasonal items like Corn Bhel or Veg Frankie to attract more customers.",
-                    "Introduce a healthy combo option with salad or fresh juice for students preferring light meals.",
-                ],
-                operations: [
-                    "Plan ingredient procurement every Wednesday to minimize weekend surplus.",
-                    "Record daily food waste weight in each category for trend analysis.",
-                    "Rotate staff roles weekly for better operational understanding.",
-                    "Ensure oil used in frying is replaced twice a week for quality and safety.",
-                ],
-                chart: [10, 7, 4, 3],
-            },
-
-            month: {
-                wasteReduction: [
-                    "Optimize monthly vendor orders to match observed consumption trends.",
-                    "Store dry items like rice, flour, and pulses in airtight containers to reduce spoilage.",
-                    "Analyze item popularity using sales data and eliminate low-selling dishes.",
-                    "Encourage students to pre-book monthly meal plans to reduce uncertainty.",
-                    "Repurpose unsold ingredients for social causes or animal feed partnerships.",
-                ],
-                nextDayMenu: [
-                    "Paneer dishes, Sandwiches, and South Indian breakfasts made up 40% of monthly sales — keep them consistent.",
-                    "Replace low-demand items (like Lemon Rice and Poori Bhaji) with rotating specials such as Hakka Noodles or Veg Fried Rice.",
-                    "Add a monthly ‘Canteen Special’ meal day with combos using surplus stock.",
-                    "Introduce variety by offering one regional special per week (e.g., Gujarati Thali, South Indian Platter).",
-                ],
-                operations: [
-                    "Track electricity usage during off-hours — turn off idle machines to save power.",
-                    "Encourage staff to log food waste daily using a simple Google Form or dashboard.",
-                    "Review supplier performance monthly to ensure consistent quality and freshness.",
-                    "Analyze profit and loss by comparing food cost vs sales per category.",
-                    "Display monthly sustainability stats for awareness (e.g., '20 kg less food waste this month!').",
-                ],
-                chart: [38, 30, 15, 12],
-            },
+            setMenu(menuData || []);
+            setIngredients(ingredientData || []);
+            setOrders(orderData || []);
         };
+        fetchData();
+    }, []);
 
 
-        const selected = dummyData[duration];
-        setSuggestions({
-            wasteReduction: selected.wasteReduction,
-            nextDayMenu: selected.nextDayMenu,
-            operations: selected.operations,
-        });
-        setChartData((prev) => ({
-            ...prev,
-            datasets: [
-                {
-                    ...prev.datasets[0],
-                    data: selected.chart,
-                },
-            ],
-        }));
+    const ai = new GoogleGenAI({
+        apiKey: "AIzaSyCYVQrAwJyvg1ulqnKng5qzVYSGJlB4nRM",
+    });
+
+
+    useEffect(() => {
+        if (menu.length && ingredients.length && orders.length) {
+            const prompt = `
+You are an AI assistant helping a canteen improve daily operations using Supabase data.
+Based on the provided information, generate practical, short suggestions for the following four categories:
+
+1️⃣ Key Actions to Focus On  
+2️⃣ Waste Reduction  
+3️⃣ Next Day Menu  
+4️⃣ Operational Tips  
+
+Each category should have exactly 3 suggestions in 1–2 sentences.
+Use the data below for context:
+
+Menu Data: ${JSON.stringify(menu)}
+Ingredients Data: ${JSON.stringify(ingredients)}
+Orders Data: ${JSON.stringify(orders)}
+
+Output strictly in this JSON format:
+{
+  "key_actions": ["...", "...", "..."],
+  "waste_reduction": ["...", "...", "..."],
+  "next_day_menu": ["...", "...", "..."],
+  "operational_tips": ["...", "...", "..."]
+}
+`;
+
+            async function main() {
+                try {
+                    const response = await ai.models.generateContent({
+                        model: "gemini-2.5-flash",
+                        contents: prompt,
+                    });
+
+                    // ✅ Gemini returns output_text OR response.text()
+
+                    let text = "";
+
+                    if (response.output_text) {
+                        text = response.output_text;
+                    } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        text = response.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("No valid text found in Gemini response");
+                    }
+
+                    console.log("Raw Gemini output:", text);
+
+                    // ✅ Extract JSON safely using regex
+                    let cleaned = text.replace(/```json|```/g, "").trim();
+
+                    // 2️⃣ Remove trailing commas before ] or }
+                    cleaned = cleaned
+                        .replace(/,\s*([\]}])/g, "$1") // removes extra commas
+                        .replace(/\r?\n|\r/g, " "); // remove line breaks (optional)
+
+                    // 3️⃣ Optionally extract the first JSON object if Gemini adds explanations
+                    const match = cleaned.match(/\{[\s\S]*\}/);
+                    const jsonString = match ? match[0] : "{}";
+
+                    // 4️⃣ Parse
+                    const parsed = JSON.parse(jsonString);
+                    setSuggestions({
+                        keyActions: parsed.key_actions || [],
+                        wasteReduction: parsed.waste_reduction || [],
+                        nextDayMenu: parsed.next_day_menu || [],
+                        operationalTips: parsed.operational_tips || [],
+                    });
+                } catch (err) {
+                    console.error("Gemini API error or JSON parse error:", err);
+                    setSuggestions({
+                        keyActions: ["Error generating AI suggestions."],
+                        wasteReduction: [],
+                        nextDayMenu: [],
+                        operationalTips: [],
+                    });
+                }
+            }
+            main();
+        }
+    }, [menu, ingredients, orders]);
+
+    // ✅ Forecast data from FastAPI
+    useEffect(() => {
+        if (duration === "day") {
+            const fetchForecast = async () => {
+                try {
+                    setLoadingForecast(true);
+                    const response = await fetch("http://127.0.0.1:8000/predict");
+                    const data = await response.json();
+                    setForecast(data.forecast || []);
+                } catch (error) {
+                    console.error("Error fetching forecast:", error);
+                } finally {
+                    setLoadingForecast(false);
+                }
+            };
+            fetchForecast();
+        }
+    }, [duration]);
+
+    useEffect(() => {
+        if (forecast.length > 0) {
+            const dates = [...new Set(forecast.map((f) => f.date))];
+            setUniqueDates(dates);
+            setSelectedDate(dates[0]);
+        }
+    }, []);
+
+
+    useEffect(() => {
+        if (forecast.length > 0) {
+            // Extract unique dates
+            const dates = [...new Set(forecast.map((f) => f.date))];
+            setUniqueDates(dates);
+            setSelectedDate(dates[0]); // default to first date
+        }
+    }, [forecast]);
+
+    useEffect(() => {
+        if (selectedDate) {
+            const filtered = forecast.filter((f) => f.date === selectedDate);
+            // remove duplicate dishes (keep first entry per dish)
+            const uniqueByDish = Object.values(
+                filtered.reduce((acc, cur) => {
+                    acc[cur.dish] = cur;
+                    return acc;
+                }, {})
+            );
+            setFilteredForecast(uniqueByDish);
+        }
+    }, [selectedDate, forecast]);
+
+    // Fetch forecast from FastAPI
+    useEffect(() => {
+        if (duration === "day") {
+            const fetchForecast = async () => {
+                try {
+                    setLoadingForecast(true);
+                    const response = await fetch("http://127.0.0.1:8000/predict");
+                    const data = await response.json();
+                    setForecast(data.forecast || []);
+                } catch (error) {
+                    console.error("Error fetching forecast:", error);
+                } finally {
+                    setLoadingForecast(false);
+                }
+            };
+            fetchForecast();
+        }
     }, [duration]);
 
     return (
@@ -184,9 +240,7 @@ export default function Suggestions() {
             {/* Header */}
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                 <div>
-                    <h1 className="text-2xl font-semibold text-blue-800">
-                        Smart Suggestions
-                    </h1>
+                    <h1 className="text-2xl font-semibold text-blue-800">Smart Suggestions</h1>
                     <p className="text-gray-600 text-sm mt-1">
                         Insights on waste, menu planning & efficiency — auto-updated by duration.
                     </p>
@@ -206,75 +260,62 @@ export default function Suggestions() {
                 </div>
             </div>
 
-
-
-            {/* Suggestions Sections */}
+            {/* Grid of suggestion cards */}
             <div className="grid md:grid-cols-2 gap-6">
-
+                {/* 🔹 Key Actions */}
                 <Card className="border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="flex items-center space-x-3">
                         <AlertTriangle className="text-blue-600" />
-                        <CardTitle className="text-blue-800 text-base">
-                            Key Actions to Focus On
-                        </CardTitle>
+                        <CardTitle className="text-blue-800 text-base">Key Actions to Focus On</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ul className="space-y-2">
-                            {priorities[duration].map((item, i) => (
-                                <li key={i} className="flex items-start space-x-2">
-                                    {item.icon}
-                                    <span className={`text-sm ${item.color}`}>{item.text}</span>
-                                </li>
+                        <ul className="list-disc pl-5 text-gray-700 space-y-1 text-sm">
+                            {(suggestions?.keyActions || []).map((tip, i) => (
+                                <li key={i}>{tip}</li>
                             ))}
                         </ul>
                     </CardContent>
                 </Card>
 
-                {/* Waste Reduction */}
+                {/* 🔹 Waste Reduction */}
                 <Card className="border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="flex items-center space-x-3">
                         <Recycle className="text-green-600" />
-                        <CardTitle className="text-blue-700 text-base">
-                            Waste Reduction
-                        </CardTitle>
+                        <CardTitle className="text-blue-700 text-base">Waste Reduction</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="list-disc pl-5 text-gray-700 space-y-1 text-sm">
-                            {suggestions.wasteReduction.map((tip, i) => (
+                            {(suggestions?.wasteReduction || []).map((tip, i) => (
                                 <li key={i}>{tip}</li>
                             ))}
                         </ul>
                     </CardContent>
                 </Card>
 
-                {/* Next Day Menu */}
+                {/* 🔹 Next Day Menu */}
                 <Card className="border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="flex items-center space-x-3">
                         <Utensils className="text-blue-600" />
-                        <CardTitle className="text-blue-700 text-base">
-                            Next Day Menu
-                        </CardTitle>
+                        <CardTitle className="text-blue-700 text-base">Next Day Menu</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="list-disc pl-5 text-gray-700 space-y-1 text-sm">
-                            {suggestions.nextDayMenu.map((tip, i) => (
+                            {(suggestions?.nextDayMenu || []).map((tip, i) => (
                                 <li key={i}>{tip}</li>
                             ))}
                         </ul>
                     </CardContent>
                 </Card>
 
-                {/* Operations */}
+                {/* 🔹 Operational Tips */}
                 <Card className="border border-blue-100 bg-white shadow-sm">
                     <CardHeader className="flex items-center space-x-3">
                         <Lightbulb className="text-yellow-500" />
-                        <CardTitle className="text-blue-700 text-base">
-                            Operational Tips
-                        </CardTitle>
+                        <CardTitle className="text-blue-700 text-base">Operational Tips</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="list-disc pl-5 text-gray-700 space-y-1 text-sm">
-                            {suggestions.operations.map((tip, i) => (
+                            {(suggestions?.operationalTips || []).map((tip, i) => (
                                 <li key={i}>{tip}</li>
                             ))}
                         </ul>
@@ -282,30 +323,75 @@ export default function Suggestions() {
                 </Card>
             </div>
 
-            {/* Summary Card */}
-            <Card className="mt-6 border border-green-200 bg-green-50 shadow-sm">
-                <CardHeader className="flex items-center space-x-3">
-                    <Leaf className="text-green-700" />
-                    <CardTitle className="text-green-800 text-base">
-                        Sustainability Overview
-                    </CardTitle>
+            {/* 📊 Predicted Demand Section */}
+            <Card className="mt-6 border border-blue-200 bg-white shadow-sm">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-3">
+                        <BarChart3 className="text-blue-700" />
+                        <CardTitle className="text-blue-800 text-base">
+                            Predicted Demand (Next 7 Days)
+                        </CardTitle>
+                    </div>
+
+                    {/* 📅 Date Selector */}
+                    <select
+                        className="border border-blue-200 bg-white rounded-md px-3 py-1.5 text-sm text-blue-700 focus:ring-2 focus:ring-blue-400"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                    >
+                        {uniqueDates.map((date, i) => (
+                            <option key={i} value={date}>
+                                {new Date(date).toLocaleDateString("en-IN", {
+                                    weekday: "short",
+                                    day: "2-digit",
+                                    month: "short",
+                                })}
+                            </option>
+                        ))}
+                    </select>
                 </CardHeader>
+
                 <CardContent>
-                    <p className="text-sm text-gray-700">
-                        Estimated food waste:{" "}
-                        <strong>
-                            {duration === "day"
-                                ? "4.8 kg"
-                                : duration === "week"
-                                    ? "22 kg"
-                                    : "95 kg"}
-                        </strong>
-                        . Continuous monitoring and menu optimization can reduce this by up
-                        to <strong>25%</strong> monthly, saving around{" "}
-                        <strong>₹1,200–₹1,500</strong>.
-                    </p>
+                    {loadingForecast ? (
+                        <p className="text-gray-500 text-sm">Loading predictions...</p>
+                    ) : forecast.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm border border-gray-200 rounded-md">
+                                <thead className="bg-gray-100">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left">Dish</th>
+                                        <th className="px-3 py-2 text-left">Predicted Servings</th>
+                                        <th className="px-3 py-2 text-left">Recommended Servings</th>
+                                        <th className="px-3 py-2 text-left">Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredForecast.map((f, i) => (
+                                        <tr key={i} className="border-t border-gray-200">
+                                            <td className="px-3 py-2 font-medium">{f.dish}</td>
+                                            <td className="px-3 py-2">{f.predicted}</td>
+                                            <td className="px-3 py-2">{f.recommended_servings}</td>
+                                            <td
+                                                className={`px-3 py-2 capitalize ${f.confidence === "high"
+                                                    ? "text-green-600"
+                                                    : f.confidence === "medium"
+                                                        ? "text-yellow-600"
+                                                        : "text-red-600"
+                                                    }`}
+                                            >
+                                                {f.confidence}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 text-sm">No forecast data available.</p>
+                    )}
                 </CardContent>
             </Card>
+
         </div>
     );
 }

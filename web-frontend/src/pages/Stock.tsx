@@ -187,6 +187,7 @@ export default function Stock() {
                 <tr className="bg-green-100 text-green-800">
                   <th className="p-2 text-left">Name</th>
                   <th className="p-2 text-center">Quantity</th>
+                  <th className="p-2 text-center">Remaining</th>
                   <th className="p-2 text-center">Reorder Level</th>
                   <th className="p-2 text-center">Expiry Date</th>
                   <th className="p-2 text-center">Cost/Unit (₹)</th>
@@ -194,28 +195,34 @@ export default function Stock() {
                   <th className="p-2 text-center">Action</th>
                 </tr>
               </thead>
+
               <tbody>
                 {ingredients.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center text-gray-500 p-4">
+                    <td colSpan="8" className="text-center text-gray-500 p-4">
                       No ingredients found
                     </td>
                   </tr>
                 ) : (
                   ingredients.map((item) => {
-                    const isLowStock = item.quantity <= item.reorder_level;
+                    const isLowStock =
+                      item.remaining_ingredient <= item.reorder_level || item.quantity <= item.reorder_level;
                     const isExpired =
                       item.expiry_date && new Date(item.expiry_date) < new Date();
 
                     return (
                       <tr
                         key={item.id}
-                        className={`border-b hover:bg-green-50 transition ${
-                          isLowStock || isExpired ? "bg-red-50" : ""
-                        }`}
+                        className={`border-b hover:bg-green-50 transition ${isLowStock || isExpired ? "bg-red-50" : ""
+                          }`}
                       >
                         <td className="p-2 font-medium">{item.name}</td>
                         <td className="p-2 text-center">{item.quantity ?? "-"}</td>
+                        <td className="p-2 text-center text-blue-700 font-semibold">
+                          {item.remaining_ingredient !== null && item.remaining_ingredient !== undefined
+                            ? item.remaining_ingredient.toFixed(2)
+                            : item.quantity?.toFixed(2)}
+                        </td>
                         <td className="p-2 text-center">{item.reorder_level ?? "-"}</td>
                         <td className="p-2 text-center">
                           {item.expiry_date

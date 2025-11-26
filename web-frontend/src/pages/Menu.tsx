@@ -180,6 +180,15 @@ export default function Menu() {
                 </div>
 
                 <div>
+                  <Label>Image Link</Label>
+                  <Input
+                    value={newItem.image_url}
+                    onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })}
+                    placeholder="image link"
+                  />
+                </div>
+
+                <div>
                   <Label>Category</Label>
                   <Input
                     value={newItem.category}
@@ -245,11 +254,10 @@ export default function Menu() {
                           key={ing.id}
                           variant={isSelected ? "default" : "outline"}
                           size="sm"
-                          className={`${
-                            isSelected
-                              ? "bg-blue-600 text-white"
-                              : "bg-white text-gray-700"
-                          }`}
+                          className={`${isSelected
+                            ? "bg-blue-600 text-white"
+                            : "bg-white text-gray-700"
+                            }`}
                           onClick={() => toggleIngredient(ing)}
                         >
                           {ing.name}
@@ -261,21 +269,27 @@ export default function Menu() {
 
                 {/* Quantity for selected ingredients */}
                 {selectedIngredients.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3">
                     <Label>Quantities</Label>
-                    {selectedIngredients.map((ing) => (
-                      <div key={ing.id} className="flex items-center gap-2">
-                        <span className="w-32 text-sm">{ing.name}</span>
-                        <Input
-                          type="number"
-                          value={ing.qty}
-                          onChange={(e) => updateIngredientQty(ing.id, e.target.value)}
-                          className="w-20"
-                        />
-                      </div>
-                    ))}
+                    <div className="grid grid-cols-5 gap-4 mt-2">
+                      {selectedIngredients.map((ing) => (
+                        <div
+                          key={ing.id}
+                          className="flex flex-col"
+                        >
+                          <span className="text-sm font-medium mb-1">{ing.name}</span>
+                          <Input
+                            type="number"
+                            value={ing.qty}
+                            onChange={(e) => updateIngredientQty(ing.id, e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+
               </div>
 
               <DialogFooter>
@@ -303,6 +317,7 @@ export default function Menu() {
                     <th className="p-2 text-center">Category</th>
                     <th className="p-2 text-center">Price (₹)</th>
                     <th className="p-2 text-center">Available</th>
+                    <th className="p-2 text-center">Sold Today</th>
                     <th className="p-2 text-center">Ingredients</th>
                   </tr>
                 </thead>
@@ -314,6 +329,9 @@ export default function Menu() {
                       <td className="p-2 text-center">{item.price || "-"}</td>
                       <td className="p-2 text-center">
                         {item.availability ? "✅" : "❌"}
+                      </td>
+                      <td className="p-2 text-center font-semibold text-blue-700">
+                        {item.sold_today ?? 0} {/* ✅ new cell */}
                       </td>
                       <td className="p-2 text-center">
                         {item.Menu_ingredients?.length > 0 ? (
@@ -333,6 +351,7 @@ export default function Menu() {
                     </tr>
                   ))}
                 </tbody>
+
               </table>
             </div>
           )}
