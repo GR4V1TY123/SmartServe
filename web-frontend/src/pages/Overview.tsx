@@ -43,7 +43,7 @@ export default function Overview() {
                 const pending = orders.filter(o => o.status === "pending").length;
 
                 // --- 2️⃣ Fetch forecast data from FastAPI ---
-                const response = await fetch("http://127.0.0.1:8000/predict");
+                const response = await fetch(`${import.meta.env.VITE_FASTAPI_URL}/predict`);
                 const data = await response.json();
 
                 // --- 3️⃣ Get current date in YYYY-MM-DD format ---
