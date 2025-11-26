@@ -3,31 +3,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ChevronDownIcon, Eye, EyeOff } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { CardAction, CardDescription } from "../components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Calendar } from "../components/ui/calendar";
 
-/**
- * StaffLogin.jsx
- * - Uses Tailwind for styling and shadcn/ui components.
- * - Theme: dark blue background, bright red accents.
- *
- * Adjust:
- * - API endpoint in handleSubmit()
- * - shadcn imports paths if needed
- */
 
 export default function Login() {
   const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
 
   const [open, setOpen] = React.useState(false)
-  const [birthdate, setBirthdate] = React.useState<Date | undefined>(undefined)
+  const [birthdate, setBirthdate] = React.useState<any | undefined>(undefined)
 
   const validate = () => {
     if (!staffId.trim()) return "Staff ID is required.";

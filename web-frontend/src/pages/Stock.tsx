@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/supabase/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ export default function Stock() {
   const [newIngredient, setNewIngredient] = useState({
     name: "",
     quantity: "",
-    reorder_level: 2,
+    reorder_level: "",
     expiry_date: "",
     cost_per_unit: "",
   });
@@ -45,7 +45,7 @@ export default function Stock() {
       setNewIngredient({
         name: "",
         quantity: "",
-        reorder_level: 2,
+        reorder_level: "",
         expiry_date: "",
         cost_per_unit: "",
       });
@@ -199,7 +199,7 @@ export default function Stock() {
               <tbody>
                 {ingredients.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center text-gray-500 p-4">
+                    <td colSpan={8} className="text-center text-gray-500 p-4">
                       No ingredients found
                     </td>
                   </tr>

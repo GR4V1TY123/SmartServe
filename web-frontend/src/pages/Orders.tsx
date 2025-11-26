@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/supabase/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [menu, setMenu] = useState([]);
 
   // Fetch all orders
   const fetchOrders = async () => {
@@ -27,16 +25,6 @@ export default function Orders() {
 
     if (error) console.error("Error fetching orders:", error);
     else setOrders(data || []);
-  };
-
-  // Fetch Menu and Student lists
-  const fetchMenuAndStudents = async () => {
-    const [{ data: menuData }, { data: studentData }] = await Promise.all([
-      supabase.from("Menu").select("id, item, price"),
-      supabase.from("Student").select("id, name"),
-    ]);
-    setMenu(menuData || []);
-    setStudents(studentData || []);
   };
 
   // Update order status
@@ -62,8 +50,6 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders();
-    fetchMenuAndStudents();
-
     const subscription = supabase
       .channel("public:Orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "Orders" }, fetchOrders)

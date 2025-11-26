@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Leaf, Recycle, Utensils, Lightbulb, AlertTriangle, TrendingUp, Clock, BarChart3 } from "lucide-react";
-import { Pie } from "react-chartjs-2";
+import { Recycle, Utensils, Lightbulb, AlertTriangle, BarChart3 } from "lucide-react";
 import {
     Chart as ChartJS,
     ArcElement,
@@ -26,37 +25,6 @@ export default function Suggestions() {
 
     const [forecast, setForecast] = useState<any[]>([]); // predicted demand data
     const [loadingForecast, setLoadingForecast] = useState(false);
-
-    const [chartData, setChartData] = useState({
-        labels: ["Rice & Grains", "Vegetables", "Snacks", "Beverages"],
-        datasets: [
-            {
-                label: "Food Waste (kg)",
-                data: [2, 1.5, 0.8, 0.5],
-                backgroundColor: ["#60A5FA", "#34D399", "#FBBF24", "#F87171"],
-                borderWidth: 1,
-            },
-        ],
-    });
-
-    const priorities = {
-        day: [
-            { icon: <Recycle className="text-green-600 w-5 h-5" />, text: "Reuse leftover dal and rice for breakfast items tomorrow.", color: "text-green-700" },
-            { icon: <Clock className="text-blue-600 w-5 h-5" />, text: "Prepare extra dosa batter before the 12–2 PM lunch rush.", color: "text-blue-700" },
-            { icon: <AlertTriangle className="text-yellow-600 w-5 h-5" />, text: "Monitor chutney wastage — current rate 1.2 kg/day.", color: "text-yellow-700" },
-        ],
-        week: [
-            { icon: <TrendingUp className="text-blue-600 w-5 h-5" />, text: "Retain top dishes: Masala Dosa, Paneer Roll, Veg Sandwich.", color: "text-blue-700" },
-            { icon: <Recycle className="text-green-600 w-5 h-5" />, text: "Repurpose extra vegetables for soups and curries.", color: "text-green-700" },
-            { icon: <AlertTriangle className="text-orange-600 w-5 h-5" />, text: "Reduce paratha dough prep by 20% based on weekly data.", color: "text-orange-700" },
-        ],
-        month: [
-            { icon: <TrendingUp className="text-green-700 w-5 h-5" />, text: "Optimize vendor orders to cut 15% monthly food waste.", color: "text-green-800" },
-            { icon: <Recycle className="text-blue-600 w-5 h-5" />, text: "Introduce ‘Zero Waste Friday’ combo using surplus items.", color: "text-blue-700" },
-            { icon: <AlertTriangle className="text-red-600 w-5 h-5" />, text: "Review 3 low-demand items for potential replacement.", color: "text-red-700" },
-        ],
-    };
-
     const [selectedDate, setSelectedDate] = useState("");
     const [uniqueDates, setUniqueDates] = useState([]);
     const [filteredForecast, setFilteredForecast] = useState([]);
@@ -79,7 +47,7 @@ export default function Suggestions() {
 
 
     const ai = new GoogleGenAI({
-        apiKey: "AIzaSyCYVQrAwJyvg1ulqnKng5qzVYSGJlB4nRM",
+        apiKey: import.meta.env.VITE_GEMINI_KEY,
     });
 
 
@@ -121,9 +89,7 @@ Output strictly in this JSON format:
 
                     let text = "";
 
-                    if (response.output_text) {
-                        text = response.output_text;
-                    } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
                         text = response.candidates[0].content.parts[0].text;
                     } else {
                         throw new Error("No valid text found in Gemini response");
