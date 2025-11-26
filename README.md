@@ -2,7 +2,7 @@
 ### Can institutional kitchens accurately prepare food without relying on guesswork?
 
 SmartServe is an AI-powered food waste optimization system that predicts surplus, recommends low-waste menu alternatives, and computes optimal portion sizes.  
-It is built using **React, FastAPI, Node.js, Supabase**, and ML tools including **Prophet**, **SentenceTransformer**, **PuLP**, and the **Gemini API** for intelligent suggestions.
+It is built using **React, FastAPI, Supabase**, and ML tools including **Prophet**, **SentenceTransformer**, **PuLP**, and the **Gemini API** for intelligent suggestions.
 
 **Live Demo:** https://smartserveproject.netlify.app/
 
@@ -97,7 +97,7 @@ Institutional canteens face challenges such as:
 
 ### Deployment
 - Netlify — frontend  
-- Render — Node.js + FastAPI backend  
+- Render — FastAPI backend  
 - Supabase — hosted database  
 
 ---
